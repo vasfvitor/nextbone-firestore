@@ -721,4 +721,132 @@ describe('FireCollection', () => {
       expect(refSpy).to.be.calledOnce
     })
   })
+
+  describe('error handling', () => {
+    before(async () => {
+      await initializeDataset()
+    })
+
+    after(async () => {
+      await clearDataset()
+    })
+
+    it('should emit error event when sync fails', async () => {
+      const collectionRef = createCollection(db, collectionName)
+      class TestCollection extends FireCollection {
+        ref() {
+          return collectionRef
+        }
+
+        async sync() {
+          throw new Error('Test error')
+        }
+      }
+      const collection = new TestCollection()
+
+      const errorPromise = new Promise((resolve) => {
+        collection.once('error', (error) => {
+          expect(error).to.be.instanceOf(Error)
+          expect(error.message).to.equal('Test error')
+          resolve()
+        })
+      })
+
+      await collection.fetch()
+      await errorPromise
+    })
+
+    it('should emit error event when ref fails', async () => {
+      class TestCollection extends FireCollection {
+        ref() {
+          throw new Error('Ref error')
+        }
+      }
+      const collection = new TestCollection()
+
+      const errorPromise = new Promise((resolve) => {
+        collection.once('error', (error) => {
+          expect(error).to.be.instanceOf(Error)
+          expect(error.message).to.equal('Ref error')
+          resolve()
+        })
+      })
+
+      collection.fetch()
+      await errorPromise
+    })
+
+    it('should emit error event when query failts', async () => {
+      class TestCollection extends FireCollection {
+        ref() {
+          return createCollection(db, collectionName)
+        }
+
+        query() {
+          throw new Error('Query error')
+        }
+      }
+      const collection = new TestCollection()
+
+      const errorPromise = new Promise((resolve) => {
+        collection.once('error', (error) => {
+          expect(error).to.be.instanceOf(Error)
+          expect(error.message).to.equal('Query error')
+          resolve()
+        })
+      })
+
+      collection.fetch()
+      await errorPromise
+    })
+
+    it('should emit error event when parse fails', async () => {
+      class TestCollection extends FireCollection {
+        ref() {
+          return createCollection(db, collectionName)
+        }
+
+        parse() {
+          throw new Error('Parse error')
+        }
+      }
+      const collection = new TestCollection()
+
+      const errorPromise = new Promise((resolve) => {
+        collection.once('error', (error) => {
+          expect(error).to.be.instanceOf(Error)
+          expect(error.message).to.equal('Parse error')
+          resolve()
+        })
+      })
+
+      collection.fetch()
+      await errorPromise
+    })
+
+    it('should emit error event when beforeSync fails', async () => {
+      const collectionRef = createCollection(db, collectionName)
+      class TestCollection extends FireCollection {
+        ref() {
+          return collectionRef
+        }
+
+        async beforeSync() {
+          throw new Error('beforeSync error')
+        }
+      }
+      const collection = new TestCollection()
+
+      const errorPromise = new Promise((resolve) => {
+        collection.once('error', (error) => {
+          expect(error).to.be.instanceOf(Error)
+          expect(error.message).to.equal('beforeSync error')
+          resolve()
+        })
+      })
+
+      collection.fetchInitialData()
+      await errorPromise
+    })
+  })
 })
